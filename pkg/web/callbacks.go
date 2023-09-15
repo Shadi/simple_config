@@ -19,12 +19,6 @@ type CallbacksHandler struct {
   httpClient *http.Client
 }
 
-type HttpWorkers struct {
-  size int
-  task chan func(string)
-}
-
-
 func GetCallbacksHandler(callbacksMapping map[string]string) UpdatesNotifier{
   h := &CallbacksHandler {
     updates: make(chan string, 100), //ToDo: make it configurable
