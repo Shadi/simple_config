@@ -8,8 +8,8 @@ import (
 )
 
 const (
-  callbacksBucket = "callbacks";
-  lastUpdatedBucket = "timestamps";
+  CallbacksBucket = "callbacks";
+  LastUpdatedBucket = "timestamps";
 )
 
 type boltDb struct{
@@ -23,12 +23,12 @@ func NewStorage(path string) (Storage, error) {
     return nil, err
   }
   err = bdb.Update(func (tx *bolt.Tx) error {
-    _, err := tx.CreateBucketIfNotExists([]byte(callbacksBucket))
+    _, err := tx.CreateBucketIfNotExists([]byte(CallbacksBucket))
     if err != nil {
       log.Err(err).Msg("Failed to create callbacks bucket")
       return err
     }
-    _, err = tx.CreateBucketIfNotExists([]byte(lastUpdatedBucket))
+    _, err = tx.CreateBucketIfNotExists([]byte(LastUpdatedBucket))
     return err
   })
 
@@ -50,8 +50,9 @@ func (d *boltDb) GetProperty(namespace, key string) (string, error) {
   })
   return string(val),err
 }
-func (d *boltDb) SetProperty(namespace, key, value, callback string) error{
- return d.db.Update(func(tx *bolt.Tx) error {
+
+func (d *boltDb) SetProperty(namespace, key, value string) error{
+  return d.db.Update(func(tx *bolt.Tx) error {
     b,err := tx.CreateBucketIfNotExists([]byte(namespace))
     if err != nil {
       log.Err(err).Msg("Failed to find namespace")
@@ -64,14 +65,40 @@ func (d *boltDb) SetProperty(namespace, key, value, callback string) error{
     }
 
     id := []byte(namespace+key)
-    cb := tx.Bucket([]byte(callbacksBucket))
-    err = cb.Put(id, []byte(callback))
+    tb := tx.Bucket([]byte(LastUpdatedBucket))
+    err = tb.Put(id, []byte(time.Now().Format(time.RFC3339)))
     if err != nil {
-      log.Err(err).Msg("Failed to set callback")
+      log.Err(err).Msg("Failed to set property last updated")
       return err
     }
-    tb := tx.Bucket([]byte(lastUpdatedBucket))
-    err = tb.Put(id, []byte(time.Now().Format(time.RFC3339)))
-    return err
+
+    return nil
   }) 
+}
+
+func (d *boltDb) RegisterCallback(namespace, key, callback string) error {
+ return d.db.Update(func(tx *bolt.Tx) error {
+    cb := tx.Bucket([]byte(CallbacksBucket))
+    err := cb.Put([]byte(namespace+key), []byte(callback))
+    if err != nil {
+      log.Err(err).Msg("Failed to set callback")
+    }
+    return err
+  })
+}
+
+func (d *boltDb) ReadNamespaceData(namespace string) (map[string]string, error) {
+  m := make(map[string]string)
+  err := d.db.View(func(tx *bolt.Tx) error {
+    tx.Bucket([]byte(namespace)).ForEach(func(k, v []byte) error {
+      key := make([]byte, len(k))
+      value := make([]byte, len(v))
+      copy(key, k)
+      copy(value, v)
+      m[string(key)] = string(value)
+      return nil
+    })
+    return nil
+  })
+  return m, err
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/shadi/simple_config/pkg/web"
 )
 
+
 func main() {
   zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
   
@@ -15,6 +16,11 @@ func main() {
     log.Fatal().Err(err).Msg("Error initializing Server")
   }
  
-  h := web.GetHttpServer(db)
+  webhooks, err := db.ReadNamespaceData(data.CallbacksBucket)
+  if err != nil {
+    log.Fatal().Err(err).Msg("Failed to read callbacks bucket")
+  }
+  c := web.GetCallbacksHandler(webhooks)
+  h := web.GetHttpServer(db, c)
   h.ServeRequests()
 }
