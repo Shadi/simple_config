@@ -47,7 +47,7 @@ func (c *CallbacksHandler) NotifyUpdate(namespace, key string) {
 func (c *CallbacksHandler) watchUpdates() {
   for url := range c.updates {
 		log.Debug().Msgf("Received update request: %s", url)
-    c.callWebhook(url)
+    go c.callWebhook(url)
 	}
 }
 
