@@ -1,10 +1,12 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/semaphore"
 )
 
 
@@ -17,6 +19,7 @@ type CallbacksHandler struct {
   data map[string]string
   updates chan string
   httpClient *http.Client
+  limiter semaphore.Weighted
 }
 
 func GetCallbacksHandler(callbacksMapping map[string]string) UpdatesNotifier{
@@ -26,6 +29,7 @@ func GetCallbacksHandler(callbacksMapping map[string]string) UpdatesNotifier{
     httpClient: &http.Client{
       Timeout: time.Second * 1,
     },
+    limiter: *semaphore.NewWeighted(100),
   }
   go h.watchUpdates()
   return h
@@ -47,7 +51,14 @@ func (c *CallbacksHandler) NotifyUpdate(namespace, key string) {
 func (c *CallbacksHandler) watchUpdates() {
   for url := range c.updates {
 		log.Debug().Msgf("Received update request: %s", url)
-    go c.callWebhook(url)
+    if err := c.limiter.Acquire(context.Background(),1); err != nil {
+      log.Warn().Msgf("Failed to acquire semaphore for url %s, skipping callback\n", url)
+      return
+    }
+    go func(url string) {
+      c.callWebhook(url)
+      c.limiter.Release(1)
+    }(url)
 	}
 }
 

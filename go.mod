@@ -7,6 +7,7 @@ require github.com/gin-gonic/gin v1.9.1
 require (
 	github.com/rs/zerolog v1.30.0
 	go.etcd.io/bbolt v1.3.7
+	golang.org/x/sync v0.3.0
 )
 
 require (
