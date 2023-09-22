@@ -21,4 +21,6 @@ EXPOSE 8080
 ENV PORT=8080
 ENV GIN_MODE="release"
 
+LABEL org.opencontainers.image.source https://github.com/shadi/simple_config
+
 ENTRYPOINT ["simple_config"]
