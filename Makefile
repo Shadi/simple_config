@@ -20,3 +20,4 @@ docker_image:
 	docker build -t "$(DOCKER_REGISTERY):${VERSION}" .
 	docker tag "$(DOCKER_REGISTERY):${VERSION}" "$(DOCKER_REGISTERY):latest" 
 	docker push "$(DOCKER_REGISTERY):${VERSION}"
+	docker push "$(DOCKER_REGISTERY):latest"
