@@ -7,7 +7,6 @@ import (
 	"github.com/shadi/simple_config/pkg/web"
 )
 
-
 func main() {
   zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
   

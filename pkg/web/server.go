@@ -17,11 +17,15 @@ type StoreBackedServer struct {
   notifier UpdatesNotifier
 }
 
-type Property struct {
-  Key string;
-  Value string;
-  Namespace string;
-  Callback string;
+type PutProperty struct {
+  Key string `json:"key"`
+  Value string `json:"value"`
+  Namespace string `json:"namespace"`
+}
+type WebhookProperty struct {
+  Key string `json:"key"`
+  Namespace string `json:"namespace"`
+  Callback string `json:"callback"`
 }
 
 
@@ -39,19 +43,19 @@ func (h *StoreBackedServer) ServeRequests() {
     })
   })
 
-  r.POST("/put", h.putProperty)
-  r.GET("/get", h.getProperty)
-  r.POST("/webhook", h.registerWebhook)
+  r.POST("/v1/put", h.putProperty)
+  r.GET("/v1/get", h.getProperty)
+  r.POST("/v1/webhook", h.registerWebhook)
   
   r.Run()
 }
 
 func (h *StoreBackedServer) putProperty(c *gin.Context) {
-  p := &Property{}
+  p := &PutProperty{}
   
   if err := c.BindJSON(p); err != nil {
     c.JSON(http.StatusBadRequest, gin.H{
-      "error": "Problem with request body, needs namespace, key, value",
+      "error": "problem with request body, needs namespace, key, value",
     })
     return 
   }
@@ -65,13 +69,13 @@ func (h *StoreBackedServer) putProperty(c *gin.Context) {
 
   if err := h.db.SetProperty(p.Namespace, p.Key, p.Value); err != nil {
     log.Err(err).Msg("Error saving Property")
-    c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal error"})
+    c.JSON(http.StatusInternalServerError, gin.H{"message": "internal error"})
     return
   }
 
   go h.notifier.NotifyUpdate(p.Namespace, p.Key)
 
-  c.JSON(http.StatusOK, gin.H{"Message": "property updated"})
+  c.JSON(http.StatusOK, gin.H{"message": "property updated"})
 }
 
 func (h *StoreBackedServer) getProperty(c *gin.Context) {
@@ -86,15 +90,15 @@ func (h *StoreBackedServer) getProperty(c *gin.Context) {
   v, err := h.db.GetProperty(n, k);
   if err != nil {
     log.Err(err).Msgf("Error Getting Property %s %s", n, k)
-    c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal error"})
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
     return
   }
 
-  c.JSON(http.StatusOK, gin.H{"Value": v})
+  c.JSON(http.StatusOK, gin.H{"value": v})
 }
 
 func (h *StoreBackedServer) registerWebhook(c *gin.Context){
-  p := &Property{}
+  p := &WebhookProperty{}
   if err := c.BindJSON(p); err != nil {
     c.JSON(http.StatusBadRequest, gin.H{
       "error": "Problem with request body, needs namespace, key, callback",
@@ -103,13 +107,14 @@ func (h *StoreBackedServer) registerWebhook(c *gin.Context){
   }
   if p.Namespace == "" || p.Key == "" || p.Callback == "" {
     c.JSON(http.StatusBadRequest, gin.H{
-    "message": "request should have properties namespace, key, callback",
+    "error": "request should have properties namespace, key, callback",
     })
     return
   }
   err := h.db.RegisterCallback(p.Namespace, p.Key, p.Callback)
   if err != nil {
     log.Err(err).Msg("failed to register callback")
+    c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
     return
   }
 
