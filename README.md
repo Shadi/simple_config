@@ -36,5 +36,3 @@ callbacks can be registered even before a property is set, after registering it 
 
 There is a make target for running it locally, simple execute `make run` and it would start it with the default port `8080`.
 You can also use the docker image `ghcr.io/shadi/simple_config:latest`, it accepts environment variables `Port` where you can set the port the web server listens to and `GIN_MODE` where you can set it to `RELEASE` or `DEBUG`
-
-more to come
